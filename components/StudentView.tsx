@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { DictationItem, StudentResult } from '../types';
 import { playTextToSpeech } from '../services/geminiService';
 import { Button } from './Button';
-import { Volume2, ArrowRight, PenTool, Ear, Eye, List, X, Printer, Type, Star, Palette } from 'lucide-react';
+import { Volume2, ArrowRight, PenTool, Ear, Eye, List, X, Printer, Type, Star, Palette, Shuffle, Image as ImageIcon } from 'lucide-react';
 
 interface StudentViewProps {
   items: DictationItem[];
@@ -29,6 +29,27 @@ const FONTS = [
 
 const GOOGLE_FONTS_URL = "https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Dongle&family=Gaegu:wght@400;700&family=Gamja+Flower&family=Gowun+Dodum&family=Hi+Melody&family=Jua&family=Nanum+Pen+Script&family=Noto+Sans+KR:wght@400;700&family=Poor+Story&family=Single+Day&family=Sunflower:wght@300&family=Yeon+Sung&display=swap";
 
+const BACKGROUNDS = [
+  { name: '기본', url: "https://images.unsplash.com/photo-1618588507085-c79565432917?q=80&w=2000&auto=format&fit=crop" },
+  { name: '학교', url: "https://images.unsplash.com/photo-1580582932707-520aed937b7b?q=80&w=2000&auto=format&fit=crop" },
+  { name: '들판', url: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=2000&auto=format&fit=crop" },
+  { name: '하늘', url: "https://images.unsplash.com/photo-1595878715977-2e8f8df18ea8?q=80&w=2000&auto=format&fit=crop" },
+  { name: '책상', url: "https://images.unsplash.com/photo-1510915228340-29c85a43dcfe?q=80&w=2000&auto=format&fit=crop" },
+  { name: '미술', url: "https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?q=80&w=2000&auto=format&fit=crop" },
+  { name: '우주', url: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2000&auto=format&fit=crop" },
+  { name: '바다', url: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=2000&auto=format&fit=crop" },
+  { name: '놀이터', url: "https://images.unsplash.com/photo-1562635038-00dc188d3745?q=80&w=2000&auto=format&fit=crop" },
+  { name: '도서관', url: "https://images.unsplash.com/photo-1507842217343-583bb7270b66?q=80&w=2000&auto=format&fit=crop" },
+  { name: '벚꽃', url: "https://images.unsplash.com/photo-1522383225653-ed111181a951?q=80&w=2000&auto=format&fit=crop" },
+  { name: '소풍', url: "https://images.unsplash.com/photo-1558190520-a6e5452d1947?q=80&w=2000&auto=format&fit=crop" },
+  { name: '비', url: "https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?q=80&w=2000&auto=format&fit=crop" },
+  { name: '숲', url: "https://images.unsplash.com/photo-1448375240586-dfd8d395ea6c?q=80&w=2000&auto=format&fit=crop" },
+  { name: '도시', url: "https://images.unsplash.com/photo-1449824913929-203a13284948?q=80&w=2000&auto=format&fit=crop" },
+  { name: '무지개', url: "https://images.unsplash.com/photo-1579051564724-42b78ce13b63?q=80&w=2000&auto=format&fit=crop" },
+  { name: '과일', url: "https://images.unsplash.com/photo-1610832958506-aa56368176cf?q=80&w=2000&auto=format&fit=crop" },
+  { name: '캠핑', url: "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?q=80&w=2000&auto=format&fit=crop" },
+];
+
 const THEMES = [
   { id: 'notebook', name: '공책', bg: 'bg-white', border: 'border-yellow-200', shadow: 'shadow-[0_15px_30px_rgba(0,0,0,0.1)]', textColor: 'text-gray-700' },
   { id: 'bear', name: '곰돌이', bg: 'bg-amber-100', border: 'border-amber-400', shadow: 'shadow-amber-200', textColor: 'text-amber-900' },
@@ -39,7 +60,6 @@ const THEMES = [
   { id: 'tv', name: '텔레비전', bg: 'bg-gray-100', border: 'border-gray-500', shadow: 'shadow-gray-400', textColor: 'text-gray-800' },
   { id: 'cloud', name: '구름', bg: 'bg-sky-50', border: 'border-sky-300', shadow: 'shadow-sky-200', textColor: 'text-sky-600' },
   { id: 'robot', name: '로봇', bg: 'bg-slate-200', border: 'border-slate-500', shadow: 'shadow-slate-400', textColor: 'text-slate-800' },
-  // New Themes
   { id: 'space', name: '우주', bg: 'bg-indigo-900', border: 'border-indigo-400', shadow: 'shadow-indigo-800', textColor: 'text-white' },
   { id: 'ocean', name: '바다', bg: 'bg-cyan-100', border: 'border-cyan-400', shadow: 'shadow-cyan-200', textColor: 'text-cyan-900' },
   { id: 'jungle', name: '정글', bg: 'bg-emerald-100', border: 'border-emerald-500', shadow: 'shadow-emerald-200', textColor: 'text-emerald-900' },
@@ -66,13 +86,12 @@ export const StudentView: React.FC<StudentViewProps> = ({
   const [results, setResults] = useState<StudentResult[]>([]);
   const [currentFontIndex, setCurrentFontIndex] = useState(0);
   const [currentThemeIndex, setCurrentThemeIndex] = useState(0);
+  const [currentBgIndex, setCurrentBgIndex] = useState(0);
 
   const currentItem = items[externalCurrentIndex];
   const currentTheme = THEMES[currentThemeIndex];
+  const currentBg = BACKGROUNDS[currentBgIndex];
   
-  // Cute Pastel Whimsical Background
-  const BG_IMAGE = "https://images.unsplash.com/photo-1618588507085-c79565432917?q=80&w=2000&auto=format&fit=crop";
-
   useEffect(() => {
     setIsAnswerVisible(false);
     setPlayCount(0);
@@ -123,6 +142,26 @@ export const StudentView: React.FC<StudentViewProps> = ({
 
   const toggleTheme = () => {
     setCurrentThemeIndex((prev) => (prev + 1) % THEMES.length);
+  };
+
+  const handleRandomTheme = () => {
+    let nextIndex = Math.floor(Math.random() * THEMES.length);
+    if (THEMES.length > 1 && nextIndex === currentThemeIndex) {
+      nextIndex = (nextIndex + 1) % THEMES.length;
+    }
+    setCurrentThemeIndex(nextIndex);
+  };
+
+  const toggleBackground = () => {
+    setCurrentBgIndex((prev) => (prev + 1) % BACKGROUNDS.length);
+  };
+
+  const handleRandomBackground = () => {
+    let nextIndex = Math.floor(Math.random() * BACKGROUNDS.length);
+    if (BACKGROUNDS.length > 1 && nextIndex === currentBgIndex) {
+      nextIndex = (nextIndex + 1) % BACKGROUNDS.length;
+    }
+    setCurrentBgIndex(nextIndex);
   };
 
   const handlePrint = () => {
@@ -192,7 +231,7 @@ export const StudentView: React.FC<StudentViewProps> = ({
     return (
       <div 
         className="h-full flex flex-col items-center justify-center p-8 text-center bg-cover bg-center relative"
-        style={{ backgroundImage: `url('${BG_IMAGE}')` }}
+        style={{ backgroundImage: `url('${currentBg.url}')` }}
       >
         <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px]"></div>
         <div className="relative z-10 flex flex-col items-center animate-bounce">
@@ -462,7 +501,7 @@ export const StudentView: React.FC<StudentViewProps> = ({
     <div 
       className="h-full flex flex-col p-4 md:p-6 bg-cover bg-center relative overflow-hidden"
       style={{ 
-        backgroundImage: `url('${BG_IMAGE}')`,
+        backgroundImage: `url('${currentBg.url}')`,
         fontFamily: FONTS[currentFontIndex].value 
       }}
     >
@@ -485,6 +524,33 @@ export const StudentView: React.FC<StudentViewProps> = ({
             >
                 <Palette size={18}/> {currentTheme.name}
             </button>
+            <button
+                onClick={handleRandomTheme}
+                className="bg-white hover:bg-pink-50 px-4 py-2 rounded-xl shadow-[0_3px_0_rgba(0,0,0,0.1)] border-2 border-pink-100 text-pink-500 font-bold active:translate-y-1 active:shadow-none transition-all flex items-center gap-2"
+                title="테마 랜덤"
+            >
+                <Shuffle size={18}/>
+            </button>
+
+            <div className="w-[1px] h-8 bg-gray-300 mx-1"></div>
+
+            <button 
+                onClick={toggleBackground}
+                className="bg-white hover:bg-blue-50 px-4 py-2 rounded-xl shadow-[0_3px_0_rgba(0,0,0,0.1)] border-2 border-blue-100 text-blue-600 font-bold active:translate-y-1 active:shadow-none transition-all flex items-center gap-2"
+                title="배경 바꾸기"
+            >
+                <ImageIcon size={18}/> {currentBg.name}
+            </button>
+            <button
+                onClick={handleRandomBackground}
+                className="bg-white hover:bg-indigo-50 px-4 py-2 rounded-xl shadow-[0_3px_0_rgba(0,0,0,0.1)] border-2 border-indigo-100 text-indigo-500 font-bold active:translate-y-1 active:shadow-none transition-all flex items-center gap-2"
+                title="배경 랜덤"
+            >
+                <Shuffle size={18}/>
+            </button>
+
+            <div className="w-[1px] h-8 bg-gray-300 mx-1"></div>
+
             <button 
                 onClick={toggleFont}
                 className="bg-white hover:bg-yellow-50 px-4 py-2 rounded-xl shadow-[0_3px_0_rgba(0,0,0,0.1)] border-2 border-yellow-100 text-yellow-700 font-bold active:translate-y-1 active:shadow-none transition-all flex items-center gap-2"
