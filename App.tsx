@@ -3,14 +3,16 @@ import { DictationItem, StudentResult } from './types';
 import { DEFAULT_ITEMS } from './constants';
 import { TeacherView } from './components/TeacherView';
 import { StudentView } from './components/StudentView';
+import { PopoutWindow } from './components/PopoutWindow';
 import { Button } from './components/Button';
-import { GraduationCap, RotateCcw, Maximize2, Minimize2, CheckCircle2 } from 'lucide-react';
+import { GraduationCap, RotateCcw, Maximize2, Minimize2, CheckCircle2, ExternalLink, MonitorPlay } from 'lucide-react';
 
 const App: React.FC = () => {
   const [items, setItems] = useState<DictationItem[]>(DEFAULT_ITEMS);
   const [results, setResults] = useState<StudentResult[]>([]);
   const [isExamFinished, setIsExamFinished] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [isPopoutOpen, setIsPopoutOpen] = useState(false);
   
   // Lifted state for synchronization
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -124,6 +126,18 @@ const App: React.FC = () => {
     );
   };
 
+  // Content to show in the Student Area (either embedded or placeholder for popout)
+  const studentContent = isExamFinished ? renderResult() : (
+    <StudentView 
+      key={examVersion}
+      items={items} 
+      onComplete={handleStudentComplete}
+      externalCurrentIndex={currentIndex}
+      onNextStep={handleStudentNext}
+      playTrigger={playTrigger}
+    />
+  );
+
   return (
     <div className="flex flex-col md:flex-row h-screen overflow-hidden font-sans">
       {/* Left Panel: Teacher View */}
@@ -139,27 +153,56 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Right Panel: Student View (or Result) */}
-      <div className={`h-[60vh] md:h-full relative transition-all duration-300 ${isFullScreen ? 'w-full' : 'w-full md:w-2/3'}`}>
-        {/* Toggle Full Screen Button */}
-        <button 
-          onClick={toggleFullScreen}
-          className="absolute top-4 left-4 z-50 p-2 bg-white/80 backdrop-blur-sm rounded-full shadow-md text-gray-500 hover:text-blue-600 hover:bg-white transition-all border border-gray-200"
-          title={isFullScreen ? "선생님 화면 보이기" : "학생 화면 전체로 보기"}
-        >
-          {isFullScreen ? <Minimize2 size={24} /> : <Maximize2 size={24} />}
-        </button>
+      {/* Right Panel: Student View Container */}
+      <div className={`h-[60vh] md:h-full relative transition-all duration-300 ${isFullScreen ? 'w-full' : 'w-full md:w-2/3'} bg-yellow-50 border-l border-yellow-100`}>
+        
+        {/* Toolbar Buttons */}
+        <div className="absolute top-4 left-4 z-50 flex gap-2">
+            {!isPopoutOpen && (
+                <button 
+                  onClick={toggleFullScreen}
+                  className="p-2 bg-white/80 backdrop-blur-sm rounded-full shadow-md text-gray-500 hover:text-blue-600 hover:bg-white transition-all border border-gray-200"
+                  title={isFullScreen ? "선생님 화면 보이기" : "이 화면 전체로 보기"}
+                >
+                  {isFullScreen ? <Minimize2 size={24} /> : <Maximize2 size={24} />}
+                </button>
+            )}
 
-        {isExamFinished ? renderResult() : (
-            <StudentView 
-              key={examVersion}
-              items={items} 
-              onComplete={handleStudentComplete}
-              externalCurrentIndex={currentIndex}
-              onNextStep={handleStudentNext}
-              playTrigger={playTrigger}
-            />
+            {!isFullScreen && !isPopoutOpen && (
+                <button
+                    onClick={() => setIsPopoutOpen(true)}
+                    className="p-2 bg-white/80 backdrop-blur-sm rounded-full shadow-md text-purple-500 hover:text-purple-600 hover:bg-white transition-all border border-gray-200 flex items-center gap-2 px-4 font-bold"
+                    title="새 창으로 띄우기 (듀얼모니터용)"
+                >
+                    <ExternalLink size={24} /> 
+                    <span className="hidden lg:inline text-sm">새 창으로 띄우기</span>
+                </button>
+            )}
+        </div>
+
+        {/* Render Logic: Either in Popout or In-Place */}
+        {isPopoutOpen ? (
+           <>
+             {/* Placeholder in main window */}
+             <div className="h-full flex flex-col items-center justify-center text-center p-8 bg-gray-100/50">
+                <MonitorPlay size={64} className="text-gray-300 mb-4 animate-pulse" />
+                <h3 className="text-2xl font-bold text-gray-600 mb-2">학생 화면이 새 창에 열려있어요</h3>
+                <p className="text-gray-500 mb-6">프로젝터나 두 번째 모니터로 창을 옮겨주세요.</p>
+                <Button variant="secondary" onClick={() => setIsPopoutOpen(false)}>
+                    이 화면으로 다시 가져오기
+                </Button>
+             </div>
+
+             {/* The Actual Popout Portal */}
+             <PopoutWindow title="새싹 받아쓰기 - 학생용" onClose={() => setIsPopoutOpen(false)}>
+                {studentContent}
+             </PopoutWindow>
+           </>
+        ) : (
+            // Normal In-Place Rendering
+            studentContent
         )}
+
       </div>
     </div>
   );
